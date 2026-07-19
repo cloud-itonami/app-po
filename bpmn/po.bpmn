@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <!-- createPo -->
+  <bpmn:process id="po-create-po" name="PO Create PO" isExecutable="true">
+    <bpmn:startEvent id="start-create-po"/>
+    <bpmn:sequenceFlow id="sf-cpo-1" sourceRef="start-create-po" targetRef="task-create-po"/>
+    <bpmn:serviceTask id="task-create-po" name="Create PO">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.create.po"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-cpo-2" sourceRef="task-create-po" targetRef="end-create-po"/>
+    <bpmn:endEvent id="end-create-po"/>
+  </bpmn:process>
+
+  <!-- listPos -->
+  <bpmn:process id="po-list-pos" name="PO List POs" isExecutable="true">
+    <bpmn:startEvent id="start-list-pos"/>
+    <bpmn:sequenceFlow id="sf-lpos-1" sourceRef="start-list-pos" targetRef="task-list-pos"/>
+    <bpmn:serviceTask id="task-list-pos" name="List POs">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.list.pos"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-lpos-2" sourceRef="task-list-pos" targetRef="end-list-pos"/>
+    <bpmn:endEvent id="end-list-pos"/>
+  </bpmn:process>
+
+  <!-- getPo -->
+  <bpmn:process id="po-get-po" name="PO Get PO" isExecutable="true">
+    <bpmn:startEvent id="start-get-po"/>
+    <bpmn:sequenceFlow id="sf-gpo-1" sourceRef="start-get-po" targetRef="task-get-po"/>
+    <bpmn:serviceTask id="task-get-po" name="Get PO">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.get.po"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-gpo-2" sourceRef="task-get-po" targetRef="end-get-po"/>
+    <bpmn:endEvent id="end-get-po"/>
+  </bpmn:process>
+
+  <!-- approvePo -->
+  <bpmn:process id="po-approve-po" name="PO Approve PO" isExecutable="true">
+    <bpmn:startEvent id="start-approve-po"/>
+    <bpmn:sequenceFlow id="sf-apo-1" sourceRef="start-approve-po" targetRef="task-approve-po"/>
+    <bpmn:serviceTask id="task-approve-po" name="Approve PO">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.approve.po"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-apo-2" sourceRef="task-approve-po" targetRef="end-approve-po"/>
+    <bpmn:endEvent id="end-approve-po"/>
+  </bpmn:process>
+
+  <!-- listSuppliers -->
+  <bpmn:process id="po-list-suppliers" name="PO List Suppliers" isExecutable="true">
+    <bpmn:startEvent id="start-list-suppliers"/>
+    <bpmn:sequenceFlow id="sf-ls-1" sourceRef="start-list-suppliers" targetRef="task-list-suppliers"/>
+    <bpmn:serviceTask id="task-list-suppliers" name="List Suppliers">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.list.suppliers"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-ls-2" sourceRef="task-list-suppliers" targetRef="end-list-suppliers"/>
+    <bpmn:endEvent id="end-list-suppliers"/>
+  </bpmn:process>
+
+  <!-- createSupplier -->
+  <bpmn:process id="po-create-supplier" name="PO Create Supplier" isExecutable="true">
+    <bpmn:startEvent id="start-create-supplier"/>
+    <bpmn:sequenceFlow id="sf-cs-1" sourceRef="start-create-supplier" targetRef="task-create-supplier"/>
+    <bpmn:serviceTask id="task-create-supplier" name="Create Supplier">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.create.supplier"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-cs-2" sourceRef="task-create-supplier" targetRef="end-create-supplier"/>
+    <bpmn:endEvent id="end-create-supplier"/>
+  </bpmn:process>
+
+  <!-- recordReceipt -->
+  <bpmn:process id="po-record-receipt" name="PO Record Receipt" isExecutable="true">
+    <bpmn:startEvent id="start-record-receipt"/>
+    <bpmn:sequenceFlow id="sf-rr-1" sourceRef="start-record-receipt" targetRef="task-record-receipt"/>
+    <bpmn:serviceTask id="task-record-receipt" name="Record Receipt">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.record.receipt"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-rr-2" sourceRef="task-record-receipt" targetRef="end-record-receipt"/>
+    <bpmn:endEvent id="end-record-receipt"/>
+  </bpmn:process>
+
+  <!-- listReceipts -->
+  <bpmn:process id="po-list-receipts" name="PO List Receipts" isExecutable="true">
+    <bpmn:startEvent id="start-list-receipts"/>
+    <bpmn:sequenceFlow id="sf-lrec-1" sourceRef="start-list-receipts" targetRef="task-list-receipts"/>
+    <bpmn:serviceTask id="task-list-receipts" name="List Receipts">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="com.etzhayyim.apps.po.list.receipts"/>
+      </bpmn:extensionElements>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="sf-lrec-2" sourceRef="task-list-receipts" targetRef="end-list-receipts"/>
+    <bpmn:endEvent id="end-list-receipts"/>
+  </bpmn:process>
+
+</bpmn:definitions>
