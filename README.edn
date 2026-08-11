@@ -1,1 +1,6 @@
-{:schema "etzhayyim.repository/v1" :name "com-etzhayyim-app-po" :kind :app :canonical-metadata :edn}
+{:schema "etzhayyim.repository/v1"
+ :name "app-po"
+ :kind :app
+ :canonical-metadata :edn
+ :boundary {:role :purchase-order-supply-chain-application
+            :marketplace-order "cloud-itonami/cloud-itonami-marketplace-order"}}
