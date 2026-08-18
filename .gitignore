@@ -1,0 +1,12 @@
+# shadow-cljs のビルド出力。wrangler.jsonc の main が指す先だが、生成物なので
+# commit しない（scripts/smoke-worker.cljs は「ビルドしてから」実行する gate で、
+# bundle が無ければ exit 2 = 判定できなかった、を返す）。
+dist/
+.shadow-cljs/
+node_modules/
+.cpcache/
+
+# wrangler dev (workerd) が置くローカルキャッシュ・状態。docs/operator-quickstart.md
+# §4.6 を walk すると appview/po-mcp-component/.wrangler/ ができる。生成物なので
+# commit しない（検証器の tracked-files がこれを実際に捕まえた）。
+.wrangler/
