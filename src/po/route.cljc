@@ -1,0 +1,123 @@
+(ns po.route
+  "どのハンドラが答えるか — データと、それを決める純関数。
+
+  これが `.cljs` でなく `.cljc` なのは意図的である。edge worker のうち検査に
+  値するのは経路の判断であり、ここならブラウザもビルドもネットワークも無しに
+  テストできる。`po.worker` がこの repo で唯一 Request/Response に触る層で、
+  そこには「このファイルが既に決めたこと」以外を置かない。
+
+  ingress capability が qualify した時（`:native-aot`/`:wasm-aot` は今日まだ
+  pending — ADR-2606290000）に最初に `.kotoba` へ移るのもここである。route 表は
+  スカラと文字列の上の判断であり、それがちょうど移行を生き延びる形だからだ。"
+  (:require [clojure.string :as str]))
+
+(def routes
+  "公開面をデータとして持つ。ランディングページは **この値** を描くので、
+  実際に在る route とページが宣伝する route がずれる余地が無い。
+
+  移行前の `+page.svelte` は `routeCount: 0` / `routes: []` / `vars: []` を
+  literal で持っており、同じディレクトリの `wrangler.jsonc` が route 2 本と
+  var 8 個を宣言していることに気づけなかった。docs/adr/0001 参照。"
+  [{:route/path "/"           :route/method :get  :route/kind :page
+    :route/doc "この appview の説明ページ"}
+   {:route/path "/health"     :route/method :get  :route/kind :json
+    :route/doc "生存確認。deploy された面が答えることを外から確かめられる"}
+   {:route/path "/xrpc/:nsid" :route/method :post :route/kind :proxy
+    :route/doc "XRPC を AgentGateway MCP router へ中継する"}])
+
+(defn- xrpc-nsid
+  "`/xrpc/<nsid>` の nsid。空文字と多段パスは nil を返す（前方一致で素通し
+  しない）。
+
+  移行前の SvelteKit の `[...path]` は rest パラメータなので `/xrpc/a/b` を
+  nsid `\"a/b\"` として上流へ流していた。NSID は定義上ドット区切りの
+  **単一セグメント**なので、ここでは 400 にする。これがこの移行で唯一
+  意図的に変えた request semantics で、README に理由ごと書いてある。"
+  [path]
+  (when (str/starts-with? path "/xrpc/")
+    (let [rest' (subs path (count "/xrpc/"))]
+      (when (and (seq rest') (not (str/includes? rest' "/")))
+        rest'))))
+
+(defn dispatch
+  "method + path → 何をするか。Request も Response も知らない。
+
+  返すのは `{:action …}` で、`:action` は
+  `:page` / `:health` / `:xrpc` / `:cors-preflight` / `:not-found` /
+  `:method-not-allowed` / `:bad-request` のいずれか。"
+  [method path]
+  (let [m (keyword (str/lower-case (or method "get")))
+        p (or path "")]
+    (cond
+      (and (= m :options) (str/starts-with? p "/xrpc/"))
+      {:action :cors-preflight}
+
+      (str/starts-with? p "/xrpc/")
+      (if (= m :post)
+        (if-let [nsid (xrpc-nsid p)]
+          {:action :xrpc :nsid nsid}
+          {:action :bad-request :reason "XRPC method is missing or not a single segment"})
+        {:action :method-not-allowed :allow "POST, OPTIONS"})
+
+      (= p "/health") (if (= m :get)
+                        {:action :health}
+                        {:action :method-not-allowed :allow "GET"})
+      (= p "/")       (if (= m :get)
+                        {:action :page}
+                        {:action :method-not-allowed :allow "GET"})
+      :else {:action :not-found})))
+
+(defn mcp-router-url
+  "env の設定 → AgentGateway MCP router の URL。末尾スラッシュは落とす。
+
+  既定値をここに焼くのは、**どこへ行くのかを 1 箇所で読めるようにする**ため。
+  移行前の `+server.ts` と同じ既定・同じ解決順（AGENTGATEWAY_MCP_ROUTER_URL →
+  MCP_ROUTER_URL → 既定）を保つ。"
+  [{:keys [AGENTGATEWAY_MCP_ROUTER_URL MCP_ROUTER_URL]}]
+  (let [pick (fn [s] (when (and (string? s) (seq (str/trim s))) (str/trim s)))]
+    (-> (or (pick AGENTGATEWAY_MCP_ROUTER_URL)
+            (pick MCP_ROUTER_URL)
+            "https://mcp.etzhayyim.com/xrpc/com.etzhayyim.mcp.message")
+        (str/replace #"/+$" ""))))
+
+(defn decode-capabilities
+  "`APP_CAPABILITIES`（wrangler が JSON 文字列で渡す）→ この actor が名乗る
+  capability の一覧。
+
+  **「設定されていない」「壊れている」「0 件」を同じ値で返さない。** これは
+  この移行が殺しに来た欠陥そのもの（superproject ADR-2608136000: 測れなかった
+  検査が、測って問題が無かった検査と同じ値を返す）である。移行前のページは
+  `No public route is declared` と書き、それが『調べたが無かった』のか
+  『そもそも見ていない』のかを読み手に区別させなかった。"
+  [s]
+  (if-not (and (string? s) (seq (str/trim s)))
+    {:ok? false :reason "APP_CAPABILITIES が env に無い"}
+    #?(:cljs (try
+               (let [v (js->clj (js/JSON.parse s))]
+                 (if (vector? v)
+                   {:ok? true :value (mapv str v)}
+                   {:ok? false :reason "APP_CAPABILITIES が JSON 配列ではない"}))
+               (catch :default _
+                 {:ok? false :reason "APP_CAPABILITIES が JSON として読めない"}))
+       :default {:ok? false :reason "この runtime に JSON reader が無い"})))
+
+(defn unwrap-mcp
+  "MCP router の応答から、呼び手に返す値を取り出す。
+
+  `{:result {:structuredContent X}}` → X、`{:result X}` → X、それ以外は素通し。
+  移行前の `+server.ts` と同じ剥がし方。`{:error …}` は呼び出し側が 502 に
+  するので、ここでは判定だけ返す。"
+  [payload]
+  (cond
+    (and (map? payload) (contains? payload :error))
+    {:ok? false
+     :error (get-in payload [:error :message] "MCP router returned an error")
+     :upstream payload}
+
+    (and (map? payload) (contains? payload :result))
+    (let [r (:result payload)]
+      {:ok? true :value (if (and (map? r) (contains? r :structuredContent))
+                          (:structuredContent r)
+                          r)})
+
+    :else {:ok? true :value payload}))

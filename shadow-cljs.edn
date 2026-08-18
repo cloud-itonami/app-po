@@ -1,0 +1,23 @@
+;; app-po の appview Worker。:esm、先例は cloud-itonami-marketplace-listing と
+;; app-ongakuka。
+;;
+;; appview/po-mcp-component/wrangler.jsonc の main は ../../dist/worker.js を
+;; 指し、それは **この** bundle（src/ からコンパイルしたもの）である。移行前は
+;; main が SvelteKit のビルド出力を指しており、読み手が開く TypeScript は
+;; どの bundle にも入っていなかった（docs/adr/0001）。
+;;
+;; :warnings-as-errors true が要る。**これが無いと「ビルドが通った」は何も
+;; 意味しない** —— 実測 2026-08-18、存在しない関数 (route/dispatch-typo) を
+;; 呼ぶよう書き換えて release を回したところ、shadow-cljs は
+;; `1 warnings` と出しながら **exit 0 で dist/worker.js を書き出し**、その
+;; bundle は import した瞬間に壊れた（smoke が exit 2 で捕まえた）。
+;; 落ちない gate は劇場である（superproject CLAUDE.md）。
+{:deps {:aliases [:cljs]}
+ :builds
+ {:worker
+  {:target :esm
+   :output-dir "dist"
+   :modules {:worker {:exports {default po.worker/handler}}}
+   :compiler-options {:output-feature-set :es2020
+                      :infer-externs :auto
+                      :warnings-as-errors true}}}}

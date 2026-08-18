@@ -1,0 +1,247 @@
+[{:db/id -1
+  :adr/id "app-po-0001"
+  :adr/title "appview を TypeScript/Svelte から ClojureScript へ移す"
+  :adr/status "accepted"
+  :adr/date "2026-08-18"
+  :adr/doc_type "adr"
+  :adr/source-format "edn"
+  :adr/body "
+# ADR-0001: appview を TypeScript/Svelte から ClojureScript へ移す
+
+**Status**: accepted / **Date**: 2026-08-18 / **Deciders**: Jun Kawasaki
+
+## Context
+
+この repository は etzhayyim/root の 60-apps/etzhayyim-project-po から抽出された
+appview である。抽出以降、内容についての commit は無く、README.md も入口の文書も
+無かった。
+
+移行前に測ったこと（2026-08-18、tree 5917eb2、追跡 19 ファイル）:
+
+### 1. deploy される handler と、読み手が開くファイルが別
+
+appview/po-mcp-component/wrangler.jsonc の main は
+svelte/.svelte-kit/cloudflare/_worker.js（SvelteKit のビルド出力、tree に無い）
+だった。一方、この repo で最も application らしいファイル
+appview/po-mcp-component/src/app.ts（8 メソッドの dispatcher proxy）は、
+**この tree の中から 1 件も参照されていない**（grep 実測 0 件）。app.ts が
+存在を前提にする DISPATCHER_URL / DISPATCHER_INTERNAL_SECRET は wrangler.jsonc に
+1 つも宣言されていない。つまり app.ts はどの bundle にも入らない。
+
+実際に deploy されていたのは SvelteKit のページ 1 枚と、/xrpc/[...path] を
+mcp.etzhayyim.com へ中継する 1 本の route だけである。
+
+### 2. 公開ページが自分の設定と矛盾している
+
+svelte/src/routes/+page.svelte は routeCount: 0 / routes: [] / vars: [] を
+literal で持ち、訪問者に『No public route is declared next to this app surface』
+と表示していた。同じディレクトリの wrangler.jsonc は route を 2 本、var を 8 個、
+APP_CAPABILITIES に capability を 8 個宣言している。relativePath も抽出前の
+monorepo パスのまま（60-apps/etzhayyim-project-po/...）だった。
+
+これは superproject ADR-2608136000 が名指しした class でもある —— ページの文言は
+『調べたが無かった』のか『そもそも見ていない』のかを読み手に区別させない。
+
+### 3. 呼び先が 1 つも解決しない
+
+dig +short 実測: po.etzhayyim.com / c11ertj5.etzhayyim.com（wrangler の route）、
+mcp.etzhayyim.com（deploy されていた中継先）、dispatcher.etzhayyim.com
+（app.ts の中継先）—— 4 つとも A も AAAA も返さない。apex の etzhayyim.com だけが
+解決する（172.67.179.128 / 104.21.51.111）。
+
+## Decision
+
+**appview を ClojureScript に移し、TypeScript と Svelte を撤去する。**
+
+    src/po/route.cljc    判断（どの handler が答えるか）
+    src/po/view.cljc     ページ（jp-go-dds の hiccup）
+    src/po/worker.cljs   Request/Response に触る唯一の層
+            ↓ shadow-cljs :target :esm
+    dist/worker.js       wrangler.jsonc の main が指すもの
+
+選択肢が『app.ts か SvelteKit か』でないのは、**どちらも TypeScript だから**で
+ある。superproject CLAUDE.md の repo-wide な runtime 順序は
+kotoba wasm > clojurewasm > ClojureScript > nbb で、TypeScript はそこに無い。
+どちらを選んでも正本には着地しない。
+
+先例は同じ org の cloud-itonami-marketplace-listing
+（src/listingops/*.cljc → shadow-cljs :esm → dist/worker.js）と、同日 landed した
+cloud-itonami/app-ongakuka（同型の移行、commit 6dbd10b）。
+
+入口を .kotoba ではなく cljs に置くのは ADR-2606290000 の判断で、kotoba の ingress
+capability が :native-aot / :wasm-aot とも pending だからである。判断を .cljc に
+切り出してあるのは、ブラウザもビルドも無しにテストするためであり、ingress が
+qualify した時に最初に .kotoba へ移る部分だからでもある。
+
+### これで消えた欠陥
+
+- (1) は構造的に消えた。main が指す bundle は src/ からコンパイルされる。
+  検証器が『shadow の :output-dir と wrangler の main と export の ns 名』の
+  3 点が噛み合っていることを検査する。
+- (2) も構造的に消えた。ページは route 表（po.route/routes）と env を引数で
+  受け取って描く。表示と実際に答えるものが同じ 1 つの値から出る。さらに
+  po.route/decode-capabilities は **未設定 / 壊れた JSON / 配列でない / 0 件** を
+  別々の値で返し、ページはそれを別々の文で描く。
+- (3) は消えていない。移行はホストを立て直さない。
+
+### 持ち越さなかった経路（黙って消していない）
+
+app.ts にあってどこにも deploy されていなかったもののうち:
+
+- **POST|GET /xrpc/com.etzhayyim.apps.po.\\* → dispatcher への中継** —— 宛先
+  dispatcher.etzhayyim.com が NXDOMAIN、かつ経路が読む DISPATCHER_URL /
+  DISPATCHER_INTERNAL_SECRET が wrangler.jsonc に 1 つも宣言されていない。
+- **GET /_app/meta** —— /health と同一 payload の別名。deploy される面に生存確認の
+  入口を 2 本置く理由が無い。
+
+**動かない経路を移植して『移行済み』と言わないため**である。必要になった時点で
+route.cljc に足し、テストと binding を伴って戻す。
+
+なお /health は app.ts にもあった経路だが、**上流にも binding にも依存しない**ので
+持ち越した。app.ts は deploy されていなかったので、これは『復活』ではなく
+『deploy される面に初めて置いた』である。
+
+### 意図的に変えた request semantics
+
+移行前の SvelteKit の /xrpc/[...path] は rest パラメータなので /xrpc/a/b を
+nsid 'a/b' として上流へ流していた。NSID は定義上ドット区切りの単一セグメントなので、
+cljs 版は多段パスを 400 にする（前方一致で素通しさせない）。上流へ転送する
+ヘッダも、受信ヘッダ丸ごとから content-type / x-etzhayyim-bff /
+x-etzhayyim-xrpc-method + 在れば authorization に絞った。x-etzhayyim-bff の値は
+sveltekit-edge-bff → cljs-worker。それ以外（jsonrpc tools/call の封筒、
+result / structuredContent の剥がし方、cache-control: no-store、preflight の 204 と
+ヘッダ、URL の解決順）は移行前と同じである。
+
+### UI
+
+基盤は jp-go-digital-design-system（skill kotoba-uiux が定める新規 UI の base）。
+色・寸法は --hig-* トークン契約のみ、app 固有 CSS は 3 行。CSS は
+shadow.resource/inline で bundle に焼く（design system の外部リクエストゼロ方針）。
+
+## 検証（この ADR を書いた時点で実際に走らせたもの）
+
+- **po.route-test: 7 tests / 33 assertions、0 failures**（nbb、ビルド不要）
+- **ページ描画 → design-quality score 100.00 / 100、gate 95 PASS**
+- **scripts/verify-docs-claims.cljs: 20 claim すべて PASS、exit 0**
+- **bundle をビルドした。** resource guard 経由の shadow-cljs release worker が
+  `(55 files, 12 compiled, 0 warnings, 99.52s)` で dist/worker.js（247,140 バイト）を
+  出した。ソースを 1 本直しての 2 回目は `(55 files, 2 compiled, 0 warnings, 40.22s)` /
+  247,374 バイト。**guard の順番待ちは実測で 40 分以上**あった（並行して別 repo の
+  同種の移行が同じ build slot を取り合っていた）。迂回していない。
+- **scripts/smoke-worker.cljs がその bundle を import して 28 項目すべて PASS。**
+  default export が fetch を持つ / GET / が 200 の HTML で route 表の全 path を
+  載せている / env の表示用 3 つの値は出て他の値は出ない / APP_CAPABILITIES を
+  env から読んで 8 件描いている / DADS の CSS が bundle に焼かれている /
+  GET /health が 200 で自分の route と capability を名乗る / POST /xrpc/ と
+  /xrpc/a/b が 400（前方一致で素通ししない）/ OPTIONS が 204 / 未知パスが 404 /
+  誤 method が 405 で allow ヘッダを持つ / **持ち越さなかった /_app/meta が 404** /
+  **到達できない MCP router が 502**（この 1 本だけが built bundle の
+  crypto.randomUUID と js/fetch と unwrap 経路を通る）。
+- **compatibility_flags 無しの workerd を実際に起動した**（wrangler dev、deploy では
+  ない）。9 経路すべてが期待どおりの status を返し、wrangler のログに error は
+  0 件だった。これで nodejs_compat / nodejs_als の撤去は推測ではなく実測になった。
+
+## 各 gate を落として確かめた —— 外した mutation も、緑で戻ってきた mutation も書く
+
+検査は落ちることを見るまで信用しない。当てた mutation と、赤くなった検査:
+
+| # | mutation | 赤くなったもの |
+|---|---|---|
+| 1 | view が route 表でなく空の固定表を描く | test page-shows-the-real-routes（2 assertion）+ 検証器 page-renders-route-table |
+| 2 | decode-capabilities が「読めなかった」に {:ok? true :value []} を返す | test 2 本（5 assertion）+ 検証器 capabilities-distinguish-unreadable-from-empty |
+| 3 | 撤去した src/app.ts を元のパスに戻す | tracked-files / removed-by-migration-absent / production-ts-files |
+| 4 | 別名（src/sneaky.ts）で TypeScript を入れる | tracked-files / production-ts-files。**removed-by-migration-absent は緑のまま** —— 名指し検査では捕まらないものを言語別の数え上げが捕まえる、という設計どおり |
+| 5 | wrangler の main をビルド出力以外に向ける | wrangler-main / shadow-builds-that-main |
+| 6 | 消えた SvelteKit を指す assets ブロックを戻す | no-stale-assets-binding |
+| 7 | APP_FRAMEWORK を sveltekit-edge-bff に戻す | app-framework |
+| 8 | compatibility_flags を戻す | no-adapter-compat-flags |
+| 9 | shadow の export を別 ns にする | shadow-export |
+| 10 | shadow の :output-dir を \"build\" にする | shadow-output-dir / shadow-builds-that-main |
+| 11 | view が jp-go-dds を使わず自前で HTML を組む | design-quality 53.37 < 95 → gate FAIL |
+| 12 | bundle を消す | smoke が exit 2（0 とも 1 とも別） |
+| 13 | worker.cljs が存在しない関数を呼ぶ（:warnings-as-errors 有効） | **ビルドが exit 1**（ExceptionInfo: Use of undeclared Var po.route/dispatch-typo、:shadow.build.compiler/warning-as-error true）。dist/worker.js は**書き換えられなかった** |
+| 14 | worker.cljs が env の値をページに渡す（KEY=VALUE で描く） | smoke の page hides non-display var values が FAIL、exit 1。**page renders the display-name it was handed は緑のまま** —— 2 つの印が独立に効いている |
+
+### 緑で戻ってきた mutation（実演と数えない）
+
+- **view が渡された CSS を捨てる**（`:css nil`）—— score は 100.00 → **96.63** に
+  下がったが **gate 95 は通ってしまった**。動いたことは動いたが、gate を赤に
+  できていないので実演ではない。#11 で改めて当て直した。
+- **app 固有 CSS で `--hig-*` トークンをやめて raw な `rgba(0,0,0,0.25)` を使う**
+  —— score は **100.00 のまま動かなかった**。調べると
+  `design-quality.cli` は contrast と input-zoom の 2 軸を**そもそも採点していない**
+  （両者は audit.cljc の `extra-axes` にあり、CLI は `:extra-axes` を渡さない）。
+  **つまりトークン契約違反のうち「色のコントラスト」はこの gate から見えない。**
+  README がトークン契約を守ると書いていても、それを守らせているのは gate では
+  なくレビューである。
+- **`perl` の quoting を間違えて mutation 自体が適用されなかった回が 1 度ある**
+  （#8 の初回）。この回の出力は実演として数えていない。当て直して赤を確認した。
+
+### 検査が「落ちない」ことを 2 度見つけて直した
+
+**(a) 「ビルドが通った」は何も検査していなかった。** 存在しない関数
+（route/dispatch-typo）を呼ぶよう worker.cljs を書き換えて release を回したところ、
+shadow-cljs は `(55 files, 1 compiled, 1 warnings, 16.62s)` と表示して
+**exit 0 で dist/worker.js を書き出した**。その bundle は import した瞬間に壊れ、
+smoke が `UNDETERMINED could not exercise the bundle`（exit 2）で捕まえた。
+shadow-cljs.edn に `:warnings-as-errors true` を足し、検証器に
+build-fails-on-warnings を追加した。**これが無い状態の「ビルド緑」は、
+bundle が動くことを一切意味しない。**
+
+足したあと同じ mutation を当て直すと、ビルドは **exit 1** で止まり
+（ExceptionInfo: Use of undeclared Var po.route/dispatch-typo）、
+**dist/worker.js は書き換えられなかった**（#13）。無改変では
+`(55 files, 0 compiled, 0 warnings, 40.98s)` で通る。両方向を見た。
+
+**(b) その新しい検査自身が落ちなかった。** `:warnings-as-errors` を
+:compiler-options から消す mutation を当てたのに検証器は **緑のまま**だった ——
+検査が `str/includes?` で書かれており、**shadow-cljs.edn の冒頭コメントが
+同じ文字列を含んでいた**からである（そのコメントは、まさに (a) の理由を説明する
+ために私が書いたものだった）。shadow-cljs.edn を EDN として読んで
+`[:builds :worker :compiler-options :warnings-as-errors]` を見る形に書き換え、
+同じ mutation で赤くなることを確認した。**コメントが満たせる検査は散文についての
+検査である**（app-ongakuka の検証器が逆向きに同じことを書いている）。
+
+### smoke が実物に当たって、計画していなかった赤を出した
+
+built bundle への 1 回目の smoke が `FAIL page hides var values` を出した。
+**これは検査の誤りではなく、ページの誤りだった** —— ページは
+「キー名のみ。値は出さない。」と書きながら、見出しが APP_DISPLAY_NAME の値、
+その下の説明文が APP_DESCRIPTION の値だった。**ページが自分について嘘をついていた。**
+移行が殺しに来た欠陥（ページの表示が隣の設定と矛盾する）と同じ形が、移行後の
+ページに入っていた。
+
+直し方は 2 つあり、片方は罠である。「全部隠す」に直せば検査は緑になるが、
+ページが描くべき事実が消える。採ったのは **出す 3 つを名指しする**方
+（APP_DISPLAY_NAME / APP_DESCRIPTION / AGENTGATEWAY_MCP_ROUTER_URL）で、
+smoke の印も 2 つに分けた —— **出るべき値が出ること**と**出てはいけない値が
+出ないこと**を別々に見る。片方だけなら「全部隠す」でも緑になってしまう。
+
+印（SHOWN-4b2d91 / HIDDEN-7c1a4e）を使うのは、実在しそうな値（wrangler の
+APP_UI_TYPE は \"yoro\"）だと他の文言と偶然一致しうるうえ、引用符ごと探すと
+renderer が `\"` を `&quot;` に escape するので **決して一致しない** ——
+つまり検査が構造的に落ちなくなるからである。app-ongakuka の移行が実際に
+それを踏んだので、同じ形を持ち込まない。
+
+## Consequences
+
+- production の TypeScript は 0 本、Svelte も 0 本、正本言語が 4 本になった
+  （移行前は TS 5 + Svelte 1 対 正本 0）。この 3 つは検証器の claim なので、
+  TS が戻れば落ちる —— 撤去した 12 パスに戻る場合と別名で入る場合を別々の
+  claim が捕まえる。
+- 継承した 5 ファイル（7,622 バイト）は 1 バイトも変わっていない
+  （sha256 を検証器に固定）。wrangler.jsonc と MIGRATION-TODO.md だけは
+  **意図的に**変更した。前者は main の付け替え・消えた SvelteKit client を指す
+  assets の撤去・adapter-cloudflare のための compatibility_flags の撤去・
+  .wasm が 1 つも無い tree に残っていた rules の撤去・APP_FRAMEWORK の更新。
+  後者は DISPATCHER_URL を確認せよという項目が、その var を読む唯一のファイル
+  ごと消えて moot になったため。
+- compatibility_flags（nodejs_compat / nodejs_als）を外したのは
+  @sveltejs/adapter-cloudflare のためのものだったからで、**外した状態の
+  workerd を実際に起動して全 route を叩いて確かめてある**
+  （docs/operator-quickstart.md §4.6）。同じ org の
+  cloud-itonami-marketplace-listing は最初から compatibility_flags を持たない。
+- ホストは相変わらず 4 つとも NXDOMAIN である。移行はそれを直さない。deploy
+  するか retire するかは別の決定。
+- **deploy はしていない。** この ADR が記録するのは移行であって出荷ではない。
+"}]

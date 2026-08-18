@@ -1,29 +1,24 @@
 {
   "name": "kotodama-c11ertj5",
-  "main": "svelte/.svelte-kit/cloudflare/_worker.js",
+  // src/po/worker.cljs を shadow-cljs (:target :esm) がコンパイルしたもの。
+  // 移行前ここは SvelteKit のビルド出力を指しており、読み手が開く TypeScript は
+  // どの bundle にも入っていなかった -- docs/adr/0001 を参照。
+  "main": "../../dist/worker.js",
   "compatibility_date": "2025-03-17",
-  "compatibility_flags": [
-    "nodejs_compat",
-    "nodejs_als"
-  ],
+  // compatibility_flags は撤去した。nodejs_compat / nodejs_als は
+  // @sveltejs/adapter-cloudflare のためのもので、shadow-cljs の :esm bundle は
+  // node の組み込みも AsyncLocalStorage も使わない。無い状態で workerd を
+  // 実際に起動して全 route を叩いて確かめてある(docs/operator-quickstart.md §4.6)。
   "vars": {
     "APP_CAPABILITIES": "[\"createPo\",\"listPos\",\"getPo\",\"approvePo\",\"listSuppliers\",\"createSupplier\",\"recordReceipt\",\"listReceipts\"]",
     "APP_DESCRIPTION": "po — Purchase Order & Supply Chain Platform. BPMN-driven PO management with supplier registry and receipt tracking.",
     "APP_DISPLAY_NAME": "Purchase Orders",
-    "APP_FRAMEWORK": "sveltekit-edge-bff",
+    "APP_FRAMEWORK": "cljs-esm-worker",
     "APP_NANOID": "c11ertj5",
     "APP_PERFORMER_TYPE": "service",
     "APP_UI_TYPE": "yoro",
     "AGENTGATEWAY_MCP_ROUTER_URL": "https://mcp.etzhayyim.com/xrpc/com.etzhayyim.mcp.message"
   },
-  "rules": [
-    {
-      "type": "CompiledWasm",
-      "globs": [
-        "**/*.wasm"
-      ]
-    }
-  ],
   "routes": [
     {
       "pattern": "c11ertj5.etzhayyim.com/*",
@@ -33,11 +28,10 @@
       "pattern": "po.etzhayyim.com/*",
       "zone_name": "etzhayyim.com"
     }
-  ],
-  "assets": {
-    "directory": "./svelte/.svelte-kit/cloudflare/client",
-    "binding": "ASSETS",
-    "html_handling": "auto-trailing-slash",
-    "not_found_handling": "none"
-  }
+  ]
+  // "assets" は撤去した。./svelte/.svelte-kit/cloudflare/client を指していたが、
+  // その SvelteKit のビルド出力はもう存在しない。
+  //
+  // "rules" (CompiledWasm) も撤去した。この tree に .wasm は 1 つも無く、
+  // cljs の bundle も出さない。
 }
