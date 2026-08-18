@@ -91,8 +91,8 @@ Ran 7 tests containing 33 assertions.
 0 failures, 0 errors.
 ```
 
-何を固定しているか: `/xrpc/` は**単一セグメントの nsid だけ**通す（`/xrpc/` と
-`/xrpc/a/b` は 400。前方一致で素通ししない）、MCP router の URL 解決（空白だけの
+何を固定しているか: `/xrpc/` は**空の nsid だけ** 400 にする（`/xrpc/a/b` は
+移行前の rest パラメータと同じく中継する）、MCP router の URL 解決（空白だけの
 設定は未設定として扱う）、`result` / `structuredContent` の剥がし方、
 **`APP_CAPABILITIES` の未設定 / 壊れた JSON / 配列でない / 0 件を別々に扱うこと**、
 そして**ページが route 表から描かれること**（固定値を焼いていたら落ちる）。

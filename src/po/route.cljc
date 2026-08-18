@@ -26,18 +26,21 @@
     :route/doc "XRPC を AgentGateway MCP router へ中継する"}])
 
 (defn- xrpc-nsid
-  "`/xrpc/<nsid>` の nsid。空文字と多段パスは nil を返す（前方一致で素通し
-  しない）。
+  "`/xrpc/<nsid>` の nsid。**空文字だけが nil**。
 
-  移行前の SvelteKit の `[...path]` は rest パラメータなので `/xrpc/a/b` を
-  nsid `\"a/b\"` として上流へ流していた。NSID は定義上ドット区切りの
-  **単一セグメント**なので、ここでは 400 にする。これがこの移行で唯一
-  意図的に変えた request semantics で、README に理由ごと書いてある。"
+  移行前の SvelteKit の `[...path]` は rest パラメータで、`/xrpc/a/b` を
+  nsid 「a/b」として上流へ流していた。ここもそう振る舞う。
+
+  NSID は定義上ドット区切りの単一セグメントなので 400 にする方が厳密である
+  —— という判断は妥当だが、**この移行でそれを決めない**。同じ上流に中継する
+  同型 appview が 111 本あり、そのうち 4 本は転送、1 本（ここ）だけが 400 と
+  いう状態になっていた。検証を足すなら 111 本に対する 1 つの決定として行い、
+  移行の commit に紛れ込ませない。揃えた先は多数派ではなく**移行前の挙動**で
+  ある。"
   [path]
   (when (str/starts-with? path "/xrpc/")
     (let [rest' (subs path (count "/xrpc/"))]
-      (when (and (seq rest') (not (str/includes? rest' "/")))
-        rest'))))
+      (when (seq rest') rest'))))
 
 (defn dispatch
   "method + path → 何をするか。Request も Response も知らない。
@@ -56,7 +59,7 @@
       (if (= m :post)
         (if-let [nsid (xrpc-nsid p)]
           {:action :xrpc :nsid nsid}
-          {:action :bad-request :reason "XRPC method is missing or not a single segment"})
+          {:action :bad-request :reason "Missing XRPC method"})
         {:action :method-not-allowed :allow "POST, OPTIONS"})
 
       (= p "/health") (if (= m :get)

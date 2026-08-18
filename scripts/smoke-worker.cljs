@@ -124,9 +124,12 @@
                         (str/includes? (:body health) hidden))
                 (check! "health hides display var values too" false
                         (str/includes? (:body health) shown))
-                ;; nsid 無し / 多段の XRPC は 400。前方一致で素通ししない
+                ;; 空の nsid だけが 400。多段は移行前の rest パラメータと同じく
+                ;; 中継される —— 単一セグメントの nsid と**同じ結末**になることを
+                ;; 見る。宛先は env で .invalid に向けてあるので、この比較は実 DNS に
+                ;; 依存しない（両方とも必ず中継失敗に到達する）。
                 (check! "POST /xrpc/ status" 400 (:status bad))
-                (check! "POST /xrpc/a/b status" 400 (:status multi))
+                (check! "POST /xrpc/a/b is relayed like any nsid" (:status proxied) (:status multi))
                 (check! "OPTIONS preflight" 204 (:status pre))
                 (check! "unknown path" 404 (:status nf))
                 (check! "404 lists the real routes" true
