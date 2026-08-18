@@ -64,12 +64,10 @@ capability 8 個を宣言していることに気づけなかった。いまは 
 ### 意図的に変えた request semantics が 1 つある
 
 移行前の SvelteKit の `/xrpc/[...path]` は rest パラメータなので `/xrpc/a/b` を
-nsid `"a/b"` として上流へ流していた。NSID は定義上ドット区切りの**単一
-セグメント**なので、cljs 版は多段パスを **400** にする。前方一致で素通しさせない
-ためで、`test/po/route_test.cljc` がこれを固定している。それ以外
-（jsonrpc `tools/call` の封筒、`result` / `structuredContent` の剥がし方、
-`cache-control: no-store`、preflight の 204 とヘッダ、`AGENTGATEWAY_MCP_ROUTER_URL`
-→ `MCP_ROUTER_URL` → 既定 の解決順）は移行前と同じである。
+nsid 「a/b」として上流へ流していた。**ここもそうする。** NSID は定義上ドット
+区切りの単一セグメントなので 400 にする方が厳密だが、それは移行ではなく方針
+変更であり、同じ上流に中継する同型 appview 111 本に対する 1 つの決定として
+行うべきものである（この repo だけが 400 で、他の 4 本は転送していた）。
 
 上流へ転送するヘッダも変えた: 移行前は受信ヘッダを丸ごと（`host` だけ落として）
 転送していたが、cljs 版は `content-type` / `x-etzhayyim-bff` / `x-etzhayyim-xrpc-method`

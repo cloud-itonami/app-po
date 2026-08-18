@@ -18,7 +18,9 @@
            (route/dispatch "POST" "/xrpc/com.etzhayyim.apps.po.createPo"))))
   (testing "nsid が無い / 多段は 400。前方一致で素通ししない"
     (is (= :bad-request (:action (route/dispatch "POST" "/xrpc/"))))
-    (is (= :bad-request (:action (route/dispatch "POST" "/xrpc/a/b")))))
+    ;; 多段は移行前の rest パラメータと同じく転送する。絞るのは方針変更で
+    ;; あって移行ではない（route.cljc の xrpc-nsid docstring）。
+    (is (= {:action :xrpc :nsid "a/b"} (route/dispatch "POST" "/xrpc/a/b"))))
   (testing "preflight と method"
     (is (= :cors-preflight (:action (route/dispatch "OPTIONS" "/xrpc/x"))))
     (is (= :method-not-allowed (:action (route/dispatch "GET" "/xrpc/x"))))))
