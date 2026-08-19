@@ -53,19 +53,21 @@
   `result` / `structuredContent` を剥がし、`cache-control: no-store` で返す）。"
   [req env nsid]
   (let [e (env->map env)
-        url (route/mcp-router-url e)
-        auth (.get (.-headers req) "authorization")]
+        url (route/mcp-router-url e)]
     (-> (.json req)
         (.catch (fn [_] #js {}))
         (.then
          (fn [input]
            (js/fetch url
                      #js {:method "POST"
-                          :headers (clj->js
-                                    (cond-> {"content-type" "application/json"
-                                             "x-etzhayyim-bff" "cljs-worker"
-                                             "x-etzhayyim-xrpc-method" nsid}
-                                      auth (assoc "authorization" auth)))
+                          ;; 受け取った header を渡す。この repo は
+                          ;; `authorization` だけを名指しで拾い直していたので、
+                          ;; 認証は通っていたが**それ以外の header は全部消えて
+                          ;; いた**（route/drop-headers）。
+                          :headers (clj->js (route/relay-headers
+                                             (map (fn [pair] [(aget pair 0) (aget pair 1)])
+                                                  (es6-iterator-seq (.entries (.-headers req))))
+                                             nsid))
                           :body (js/JSON.stringify
                                  #js {:jsonrpc "2.0"
                                       :id (.randomUUID js/crypto)
