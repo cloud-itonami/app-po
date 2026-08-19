@@ -115,7 +115,15 @@
   削るだけで、`authorization` も上流に届いていた。移行で 3 つの header を新規に
   作る形にしたとき、それが黙って消えていた —— しかも preflight は
   `access-control-allow-headers: content-type,authorization` と許可を宣言した
-  ままだったので、ブラウザには送ってよいと言いながら捨てていたことになる。"
+  ままだったので、ブラウザには送ってよいと言いながら捨てていたことになる。
+
+  **この repo に限っては、その一段だけ形が違った。**同型 21 repo の多くは 3 つを
+  新規に作るだけだったが、`po.worker/proxy-xrpc` は `authorization` を名指しで
+  読み直して付け直していた。したがってここで実際に消えていたのは
+  `authorization` **以外の全部**である。実測 2026-08-19: 移行前の形に戻すと
+  `x-trace` の assertion だけが赤くなり、`authorization` の assertion は緑の
+  ままだった（一般形の 3-header に戻すと両方が赤くなる）。直した内容は同じでも、
+  失われていたものは repo ごとに違う。"
   #{"host" "content-length" "content-encoding"})
 
 (defn relay-headers
