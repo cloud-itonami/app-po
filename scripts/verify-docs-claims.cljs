@@ -22,7 +22,7 @@
 (def APP "appview/po-mcp-component")
 
 (def claims
-  {:tracked-files 19
+  {:tracked-files 20
    :preserved-bytes 7622           ; 由来から 1 バイトも変わっていない 5 ファイル
    :production-ts-files 0
    :production-svelte-files 0
