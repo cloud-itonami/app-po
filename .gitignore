@@ -10,3 +10,6 @@ node_modules/
 # §4.6 を walk すると appview/po-mcp-component/.wrangler/ ができる。生成物なので
 # commit しない（検証器の tracked-files がこれを実際に捕まえた）。
 .wrangler/
+
+# nbb dependency cache -- a build artifact, not source
+.nbb/
