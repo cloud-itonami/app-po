@@ -53,9 +53,9 @@ mcp.etzhayyim.com（deploy されていた中継先）、dispatcher.etzhayyim.co
 
 **appview を ClojureScript に移し、TypeScript と Svelte を撤去する。**
 
-    src/po/route.cljc    判断（どの handler が答えるか）
-    src/po/view.cljc     ページ（jp-go-dds の hiccup）
-    src/po/worker.cljs   Request/Response に触る唯一の層
+    src/po/route.cljk    判断（どの handler が答えるか）
+    src/po/view.cljk     ページ（jp-go-dds の hiccup）
+    src/po/worker.cljk   Request/Response に触る唯一の層
             ↓ shadow-cljs :target :esm
     dist/worker.js       wrangler.jsonc の main が指すもの
 
@@ -122,13 +122,13 @@ shadow.resource/inline で bundle に焼く（design system の外部リクエ�
 
 - **po.route-test: 7 tests / 33 assertions、0 failures**（nbb、ビルド不要）
 - **ページ描画 → design-quality score 100.00 / 100、gate 95 PASS**
-- **scripts/verify-docs-claims.cljs: 20 claim すべて PASS、exit 0**
+- **scripts/verify-docs-claims.cljk: 20 claim すべて PASS、exit 0**
 - **bundle をビルドした。** resource guard 経由の shadow-cljs release worker が
   `(55 files, 12 compiled, 0 warnings, 99.52s)` で dist/worker.js（247,140 バイト）を
   出した。ソースを 1 本直しての 2 回目は `(55 files, 2 compiled, 0 warnings, 40.22s)` /
   247,374 バイト。**guard の順番待ちは実測で 40 分以上**あった（並行して別 repo の
   同種の移行が同じ build slot を取り合っていた）。迂回していない。
-- **scripts/smoke-worker.cljs がその bundle を import して 28 項目すべて PASS。**
+- **scripts/smoke-worker.cljk がその bundle を import して 28 項目すべて PASS。**
   default export が fetch を持つ / GET / が 200 の HTML で route 表の全 path を
   載せている / env の表示用 3 つの値は出て他の値は出ない / APP_CAPABILITIES を
   env から読んで 8 件描いている / DADS の CSS が bundle に焼かれている /

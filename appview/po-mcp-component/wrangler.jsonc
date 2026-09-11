@@ -1,6 +1,6 @@
 {
   "name": "kotodama-c11ertj5",
-  // src/po/worker.cljs を shadow-cljs (:target :esm) がコンパイルしたもの。
+  // src/po/worker.cljk を shadow-cljs (:target :esm) がコンパイルしたもの。
   // 移行前ここは SvelteKit のビルド出力を指しており、読み手が開く TypeScript は
   // どの bundle にも入っていなかった -- docs/adr/0001 を参照。
   "main": "../../dist/worker.js",
