@@ -123,7 +123,7 @@ shadow.resource/inline で bundle に焼く（design system の外部リクエ�
 - **po.route-test: 7 tests / 33 assertions、0 failures**（nbb、ビルド不要）
 - **ページ描画 → design-quality score 100.00 / 100、gate 95 PASS**
 - **scripts/verify-docs-claims.cljk: 20 claim すべて PASS、exit 0**
-- **bundle をビルドした。** resource guard 経由の shadow-cljs release worker が
+- **bundle をビルドした。** resource guard 経由の amu compile --target wasm32-browser worker が
   `(55 files, 12 compiled, 0 warnings, 99.52s)` で dist/worker.js（247,140 バイト）を
   出した。ソースを 1 本直しての 2 回目は `(55 files, 2 compiled, 0 warnings, 40.22s)` /
   247,374 バイト。**guard の順番待ちは実測で 40 分以上**あった（並行して別 repo の
