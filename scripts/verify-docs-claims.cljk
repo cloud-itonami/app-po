@@ -9,7 +9,7 @@
 ;; こと** を主張する。しかも黙って戻らないように書いてある —— TypeScript は
 ;; byte 合計ではなく **名指しで不在** を検査する。
 ;;
-;; Usage:  nbb scripts/verify-docs-claims.cljs [<dir>]     (<dir> は先頭、既定 ".")
+;; Usage:  nbb scripts/verify-docs-claims.cljk [<dir>]     (<dir> は先頭、既定 ".")
 ;; Exit:   0 全 claim 成立 · 1 claim が偽 · 2 答えられなかった
 
 (require '["node:fs" :as fs]
@@ -153,8 +153,8 @@
     ;; ページだった。構造で検査する —— 部分文字列の禁止では検査しない
     ;; （app-ongakuka では「routeCount を禁止」した初版が、その欠陥を説明する
     ;; docstring 自身に引っかかった。コメントが落とせる検査は散文についての検査である）。
-    (let [v (slurp* "src/po/view.cljc")
-          w (slurp* "src/po/worker.cljs")]
+    (let [v (slurp* "src/po/view.cljk")
+          w (slurp* "src/po/worker.cljk")]
       (if (or (nil? v) (nil? w))
         (undet! "view.cljc or worker.cljs unreadable")
         (do
@@ -167,7 +167,7 @@
                   (str/includes? w "(route/decode-capabilities (:APP_CAPABILITIES e))")))))
 
     ;; 「読めなかった」と「0 件」を別の値で返す（superproject ADR-2608136000）
-    (let [r (slurp* "src/po/route.cljc")]
+    (let [r (slurp* "src/po/route.cljk")]
       (if (nil? r)
         (undet! "route.cljc unreadable")
         (check! :capabilities-distinguish-unreadable-from-empty true

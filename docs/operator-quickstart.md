@@ -21,7 +21,7 @@ Cloudflare のアカウントが要るのは §5（deploy）だけである。
 git clone git@github.com:cloud-itonami/app-po.git
 cd app-po
 REPO=$PWD
-npx --yes nbb scripts/verify-docs-claims.cljs .
+npx --yes nbb scripts/verify-docs-claims.cljk .
 ```
 
 末尾が `OK` なら README の数値・存在・不在は tree と一致している。
@@ -183,7 +183,7 @@ lock を他セッションが持っていると `resource-guard: build is alread
 焼いた CSS は、どれもビルドを通って初めて存在する。
 
 ```bash
-cd "$REPO" && npx --yes nbb scripts/smoke-worker.cljs dist/worker.js
+cd "$REPO" && npx --yes nbb scripts/smoke-worker.cljk dist/worker.js
 ```
 
 実際の出力:

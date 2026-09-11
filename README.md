@@ -8,15 +8,15 @@ LangServer）にあり、ここには無い。ここに在るのは edge の薄�
 
 `etzhayyim/root` の `60-apps/etzhayyim-project-po` からの抽出物で、
 **2026-08-18 に TypeScript/Svelte から ClojureScript へ移行した**（`docs/adr/0001`）。
-このファイルの数値はすべて `scripts/verify-docs-claims.cljs` が tree から
+このファイルの数値はすべて `scripts/verify-docs-claims.cljk` が tree から
 再計算して検査する。
 
 ## deploy されるものは、いま読んでいるソースである
 
 ```
-src/po/route.cljc    判断（どの handler が答えるか）  ← 純 .cljc、テスト対象
-src/po/view.cljc     ページ（jp-go-dds の hiccup）    ← 純 .cljc、テスト対象
-src/po/worker.cljs   Request/Response に触る唯一の層
+src/po/route.cljk    判断（どの handler が答えるか）  ← 純 .cljc、テスト対象
+src/po/view.cljk     ページ（jp-go-dds の hiccup）    ← 純 .cljc、テスト対象
+src/po/worker.cljk   Request/Response に触る唯一の層
         ↓ shadow-cljs :target :esm
 dist/worker.js       ← appview/po-mcp-component/wrangler.jsonc の "main" が指すもの
 ```
@@ -25,7 +25,7 @@ dist/worker.js       ← appview/po-mcp-component/wrangler.jsonc の "main" が�
 **これが無いと「ビルドが通った」は何も検査しない** —— 実測 2026-08-18、存在しない
 関数を呼ぶよう `worker.cljs` を書き換えて `release` を回したところ、shadow-cljs は
 `1 warnings` と表示して **exit 0 で `dist/worker.js` を書き出し**、その bundle は
-import した瞬間に壊れた（`scripts/smoke-worker.cljs` が exit 2 で捕まえた）。
+import した瞬間に壊れた（`scripts/smoke-worker.cljk` が exit 2 で捕まえた）。
 検証器の `build-fails-on-warnings` がこの設定を固定している。
 
 移行前は `main` が `svelte/.svelte-kit/cloudflare/_worker.js`（SvelteKit の
@@ -33,7 +33,7 @@ import した瞬間に壊れた（`scripts/smoke-worker.cljs` が exit 2 で捕�
 `appview/po-mcp-component/src/app.ts` は**どの bundle にも入っていなかった** ——
 実測 `grep` で、この tree の中から `app.ts` を参照するファイルは **0 件**だった。
 いまは `main` が指す bundle が上のソースからコンパイルされたものなので、その形は
-構造的に起こり得ない。`scripts/verify-docs-claims.cljs` が
+構造的に起こり得ない。`scripts/verify-docs-claims.cljk` が
 **shadow の出力先と wrangler の `main` と export の ns 名の 3 つが噛み合って
 いること**を検査し、噛み合わなくなれば落ちる。
 
@@ -80,7 +80,7 @@ nsid 「a/b」として上流へ流していた。**ここもそうする。** N
 | 面 | ファイル |
 |---|---|
 | 判断・描画・edge | `src/po/{route.cljc, view.cljc, worker.cljs}` |
-| テスト | `test/po/route_test.cljc`（7 tests / 33 assertions） |
+| テスト | `test/po/route_test.cljk`（7 tests / 33 assertions） |
 | ビルド | `deps.edn` / `shadow-cljs.edn` / `.gitignore` |
 | 検査 | `scripts/{verify-docs-claims.cljs, smoke-worker.cljs}` |
 | Worker 設定 | `appview/po-mcp-component/wrangler.jsonc` |
@@ -113,7 +113,7 @@ skill `kotoba-uiux` が定める新規 UI の base）。色・寸法は `--hig-*
 
 最初の版は「キー名のみ。値は出さない。」と書いていたが、見出しがすでに
 `APP_DISPLAY_NAME` の値だったので**ページが自分について嘘をついていた**。
-`scripts/smoke-worker.cljs` を built bundle に当てた 1 回目がこれを見つけた
+`scripts/smoke-worker.cljk` を built bundle に当てた 1 回目がこれを見つけた
 （`FAIL page hides var values`）。検査は 2 つの印に分かれていて、出るべき値が
 出ること **と** 出てはいけない値が出ないことを別々に見る —— 片方だけだと、
 「全部隠す」に直しても緑になってしまい、描くべき事実が消える。
@@ -138,7 +138,7 @@ skill `kotoba-uiux` が定める新規 UI の base）。色・寸法は `--hig-*
 | `GET /_app/meta` | `/health` と同一の payload を返す別名。deploy される面に生存確認の入口を 2 本置く理由が無い（`/health` を持ち越した） |
 
 **動かない経路を移植して「移行済み」と言わないため**である。必要になった時点で
-`src/po/route.cljc` に足し、テストと binding を伴って戻す。
+`src/po/route.cljk` に足し、テストと binding を伴って戻す。
 
 ## 呼び先が 1 つも解決しない（移行では直らない）
 
@@ -189,7 +189,7 @@ deploy 先も中継先も、いま存在しない。`/xrpc/` は到達できな�
 ## 検証
 
 ```bash
-npx --yes nbb scripts/verify-docs-claims.cljs .          # <dir> は先頭に置く
+npx --yes nbb scripts/verify-docs-claims.cljk .          # <dir> は先頭に置く
 ```
 
 exit 0 = 全一致 / 1 = 食い違い / **2 = 判定できなかった**（0 と区別する）。

@@ -11,7 +11,7 @@ No worker-side RisingWave/fiat dependency; business logic runs in the dispatcher
   `appview/po-mcp-component/src/app.ts`, which was in no bundle and has been
   removed by the ClojureScript migration (`docs/adr/0001`). No file in this
   repository reads that var, and `wrangler.jsonc` never declared it. If the
-  dispatcher path is wanted back it returns as a route in `src/po/route.cljc`,
+  dispatcher path is wanted back it returns as a route in `src/po/route.cljk`,
   with a test and a declared binding.
 - Any settlement path → USDC + ERC-4337 (no Stripe/fiat). **Still open** — this
   repository has no settlement path at all today.
