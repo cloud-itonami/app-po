@@ -1,4 +1,4 @@
-#!/usr/bin/env nbb
+#!/usr/bin/env kbb
 ;; verify-docs-claims — README.md と docs/operator-quickstart.md が主張する数値・
 ;; 存在・不在を、tree そのものから再計算して照合する。食い違えば exit 1、
 ;; tree を読み切れなければ exit 2（0 とも 1 とも別の答え）を返す。
@@ -9,7 +9,7 @@
 ;; こと** を主張する。しかも黙って戻らないように書いてある —— TypeScript は
 ;; byte 合計ではなく **名指しで不在** を検査する。
 ;;
-;; Usage:  nbb scripts/verify-docs-claims.cljk [<dir>]     (<dir> は先頭、既定 ".")
+;; Usage:  kbb --backend sci scripts/verify-docs-claims.cljk [<dir>]     (<dir> は先頭、既定 ".")
 ;; Exit:   0 全 claim 成立 · 1 claim が偽 · 2 答えられなかった
 
 (require '["node:fs" :as fs]

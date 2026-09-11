@@ -21,7 +21,7 @@ Cloudflare のアカウントが要るのは §5（deploy）だけである。
 git clone git@github.com:cloud-itonami/app-po.git
 cd app-po
 REPO=$PWD
-npx --yes nbb scripts/verify-docs-claims.cljk .
+npx --yes kbb --backend sci scripts/verify-docs-claims.cljk .
 ```
 
 末尾が `OK` なら README の数値・存在・不在は tree と一致している。
@@ -79,7 +79,7 @@ cat > /tmp/run.cljs <<'EOF'
 (require '[cljs.test :refer [run-tests]] 'po.route-test)
 (run-tests 'po.route-test)
 EOF
-npx --yes nbb --classpath "$CP" /tmp/run.cljs
+npx --yes kbb --backend sci --classpath "$CP" /tmp/run.cljs
 ```
 
 実際の出力:
@@ -113,9 +113,9 @@ cat > /tmp/render.cljs <<'EOF'
                   :mcp-url "https://mcp.etzhayyim.com/xrpc/com.etzhayyim.mcp.message"}))
   (println "ok"))
 EOF
-DDS="$K/jp-go-digital-design-system" npx --yes nbb --classpath "$CP" /tmp/render.cljs
+DDS="$K/jp-go-digital-design-system" npx --yes kbb --backend sci --classpath "$CP" /tmp/render.cljs
 
-cd $K/design-quality && npx --yes nbb -m design-quality.cli score /tmp/po-page.html --min 95
+cd $K/design-quality && npx --yes kbb --backend sci -m design-quality.cli score /tmp/po-page.html --min 95
 ```
 
 実際の出力（末尾）:
@@ -152,7 +152,7 @@ flag を足したあと同じ書き換えを当て直すと、ビルドは **exi
 ```bash
 cd "$REPO"
 node ~/github/com-junkawasaki/scripts/resource-guard.mjs run build -- \
-  npx --yes shadow-cljs release worker
+  npx --yes amu compile --target wasm32-browser worker
 ls -la dist/worker.js
 ```
 
@@ -183,7 +183,7 @@ lock を他セッションが持っていると `resource-guard: build is alread
 焼いた CSS は、どれもビルドを通って初めて存在する。
 
 ```bash
-cd "$REPO" && npx --yes nbb scripts/smoke-worker.cljk dist/worker.js
+cd "$REPO" && npx --yes kbb --backend sci scripts/smoke-worker.cljk dist/worker.js
 ```
 
 実際の出力:
