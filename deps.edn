@@ -1,6 +1,6 @@
 ;; app-po — 発注（PO）とサプライチェーンの appview。
 ;;
-;; Worker は ClojureScript である（superproject CLAUDE.md の repo-wide な
+;; Worker は ClojureScript である（superproject AGENTS.md の repo-wide な
 ;; runtime 順序 kotoba wasm > clojurewasm > ClojureScript > nbb に従う。
 ;; TypeScript はその順序に入っていない）。入口を .kotoba でなく cljs に置くのは
 ;; ADR-2606290000 の判断で、kotoba の ingress capability が :native-aot /

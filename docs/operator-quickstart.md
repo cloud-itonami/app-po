@@ -147,7 +147,7 @@ flag を足したあと同じ書き換えを当て直すと、ビルドは **exi
 `(55 files, 0 compiled, 0 warnings, 40.98s)` で通る。**両方向を見てある。**
 
 **高負荷ビルドは workspace 全体で同時 1 本に制限されている**（superproject
-`CLAUDE.md` の resource governor）。直接叩かず、必ず guard 経由で:
+`AGENTS.md` の resource governor）。直接叩かず、必ず guard 経由で:
 
 ```bash
 cd "$REPO"
