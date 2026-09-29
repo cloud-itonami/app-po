@@ -60,7 +60,7 @@ mcp.etzhayyim.com（deploy されていた中継先）、dispatcher.etzhayyim.co
     dist/worker.js       wrangler.jsonc の main が指すもの
 
 選択肢が『app.ts か SvelteKit か』でないのは、**どちらも TypeScript だから**で
-ある。superproject CLAUDE.md の repo-wide な runtime 順序は
+ある。superproject AGENTS.md の repo-wide な runtime 順序は
 kotoba wasm > clojurewasm > ClojureScript > nbb で、TypeScript はそこに無い。
 どちらを選んでも正本には着地しない。
 

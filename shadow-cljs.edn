@@ -11,7 +11,7 @@
 ;; 呼ぶよう書き換えて release を回したところ、shadow-cljs は
 ;; `1 warnings` と出しながら **exit 0 で dist/worker.js を書き出し**、その
 ;; bundle は import した瞬間に壊れた（smoke が exit 2 で捕まえた）。
-;; 落ちない gate は劇場である（superproject CLAUDE.md）。
+;; 落ちない gate は劇場である（superproject AGENTS.md）。
 {:deps {:aliases [:cljs]}
  :builds
  {:worker
